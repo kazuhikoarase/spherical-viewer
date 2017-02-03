@@ -355,14 +355,19 @@ var spherical_viewer = function(opts) {
   };
 
   var setPTZ = function(p, t, z) {
-
     t = Math.max(-Math.PI / 2, Math.min(t, Math.PI / 2) );
     z = Math.max(-5, Math.min(z, 5) );
+    var moved = model.p != p || model.t != t || model.z != z;
+    if (moved) {
+      model.p = p;
+      model.t = t;
+      model.z = z;
+      model.valid = false;
+    }
+  };
 
-    model.p = p;
-    model.t = t;
-    model.z = z;
-    model.valid = false;
+  var getPTZ = function() {
+    return { p : model.p, t : model.t, z : model.z };
   };
 
   var doMotion = function() {
@@ -424,9 +429,7 @@ var spherical_viewer = function(opts) {
         t.delta(dt);
         z.delta(dt);
         if (!model.dragging) {
-          if (last.p != p.val() || last.t != t.val() || last.z != z.val() ) {
-            setPTZ(p.val(), t.val(), z.val() );
-          }
+          setPTZ(p.val(), t.val(), z.val() );
         }
       }
       last = { p : model.p, t : model.t, z : model.z };
@@ -597,6 +600,7 @@ var spherical_viewer = function(opts) {
   model.numPoints = prepareScene();
 
   prepareEvents();
+  var toggleFullscreen = prepareFullscreen();
 
   gl.enable(gl.DEPTH_TEST);
 
@@ -605,10 +609,8 @@ var spherical_viewer = function(opts) {
   return {
     canvas : cv,
     setPTZ : setPTZ,
-    getPTZ : function() {
-      return { p : model.p, t : model.t, z : model.z };
-    },
-    toggleFullscreen : prepareFullscreen()
+    getPTZ : getPTZ,
+    toggleFullscreen : toggleFullscreen
   };
 };
 
