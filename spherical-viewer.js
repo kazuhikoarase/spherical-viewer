@@ -1,5 +1,5 @@
 //
-// spherical-viewer
+// Spherical Viewer
 //
 // Copyright (c) 2017 Kazuhiko Arase
 //

@@ -1,7 +1,7 @@
 {
   "name": "spherical-viewer",
   "version": "0.1.0",
-  "description": "",
+  "description": "panorama photo viewer",
   "author": "Kazuhiko Arase",
   "main": "spherical-viewer.js",
   "repository": {
