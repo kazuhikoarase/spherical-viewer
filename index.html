@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<script src="spherical-viewer.js"></script>
+<script>
+window.onload = function() {
+  var viewer = sphericalviewer({
+    src : 'my-picture.jpg',
+    _maxTextureSize : 1024
+  });
+  viewer.canvas.addEventListener('dblclick', function() {
+    viewer.toggleFullscreen();
+  });
+  document.body.appendChild(viewer.canvas);
+};
+</script>
+</head>
+<body>
+<h1>SphericalViewer</h1>
+<ul>
+  <li>Drag : Pan/Tilt</li>
+  <li>Ctrl+Drag (Mac:command+Click) : Zoom</li>
+  <li>Double-Click : Toggle Fullscreen</li>
+</ul>
+</body>
+</html>
