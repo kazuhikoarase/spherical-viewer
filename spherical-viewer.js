@@ -9,7 +9,7 @@
 //  http://www.opensource.org/licenses/mit-license.php
 //
 
-var sphericalviewer = function(opts) {
+var spherical_viewer = function(opts) {
 
   'use strict';
 
@@ -612,3 +612,9 @@ var sphericalviewer = function(opts) {
     toggleFullscreen : prepareFullscreen()
   };
 };
+
+!function(spherical_viewer) {
+  if (typeof exports === 'object') {
+    module.exports = spherical_viewer;
+  }
+}(spherical_viewer);
