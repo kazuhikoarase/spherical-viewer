@@ -219,7 +219,7 @@ var spherical_viewer = function(opts) {
     ctx.fillRect(unit * 3, unit, unit, unit);
     ctx.fillStyle = '#ffffff';
     ctx.font = (size >> 4) + 'px sans-serif';
-    ctx.fillText('SphericalViewer', unit << 1, unit);
+    ctx.fillText('Spherical Viewer', unit << 1, unit);
     return cv;
   };
 
@@ -355,11 +355,13 @@ var spherical_viewer = function(opts) {
   };
 
   var setPTZ = function(p, t, z) {
+
+    t = Math.max(-Math.PI / 2, Math.min(t, Math.PI / 2) );
+    z = Math.max(-5, Math.min(z, 5) );
+
     model.p = p;
     model.t = t;
     model.z = z;
-    model.t = Math.max(-Math.PI / 2, Math.min(model.t, Math.PI / 2) );
-    model.z = Math.max(-5, Math.min(model.z, 5) );
     model.valid = false;
   };
 
