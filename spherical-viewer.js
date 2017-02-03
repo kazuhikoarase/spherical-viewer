@@ -266,13 +266,13 @@ var spherical_viewer = function(opts) {
     var vt = [];
     var tx = [];
     var addPoint = function(h, v, vOffset) {
-      var t = 2 * Math.PI * h / hDiv;
-      var p = Math.PI * ( (v + vOffset) / vDiv - 0.5); 
-      vt.push(Math.cos(t) * Math.cos(p) );
-      vt.push(Math.sin(p) );
-      vt.push(Math.sin(t) * Math.cos(p) );
-      tx.push(t / (2 * Math.PI) + v);
-      tx.push(1 - (p / Math.PI + 0.5) );
+      var p = 2 * Math.PI * h / hDiv;
+      var t = Math.PI * ( (v + vOffset) / vDiv - 0.5); 
+      vt.push(Math.cos(p) * Math.cos(t) );
+      vt.push(Math.sin(t) );
+      vt.push(Math.sin(p) * Math.cos(t) );
+      tx.push(p / (2 * Math.PI) + v);
+      tx.push(1 - (t / Math.PI + 0.5) );
     };
     for (var v = 0; v < vDiv; v += 1) {
       for (var h = 0; h < hDiv; h += 1) {
@@ -300,15 +300,15 @@ var spherical_viewer = function(opts) {
 
   var updateScene = function() {
 
-    model.r = model.width * Math.exp(Math.log(1.5) * model.s);
+    model.r = model.width * Math.exp(Math.log(1.5) * model.z);
     var w = model.width;
     var h = model.height;
 
     var mat = mat4().translate({x : -1, y : -1, z : -1}).scale(2).
       scale({x : 1 / w, y : 1 / h, z : 1 / (model.r * 2)}).
       translate({x : w / 2, y : h / 2, z : model.r + 10}).
-      rotateX(model.p).
-      rotateY(model.t - Math.PI / 2).
+      rotateX(model.t).
+      rotateY(model.p - Math.PI / 2).
       scale(model.r);
 
     gl.clearColor(0, 0, 0, 255);
@@ -326,25 +326,25 @@ var spherical_viewer = function(opts) {
     cv.addEventListener('mousedown', function(event) {
       event.preventDefault();
       dragPoint = {
-        t : model.t,
         p : model.p,
-        s : model.s,
+        t : model.t,
+        z : model.z,
         x : event.pageX,
         y : event.pageY
       };
       model.dragging = true;
-      model.scaling = event.ctrlKey;
+      model.zooming = event.ctrlKey;
       target.addEventListener('mousemove', doc_mousemoveHandler);
       target.addEventListener('mouseup', doc_mouseupHandler);
     });
     var doc_mousemoveHandler = function(event) {
-      if (!model.scaling) {
-        var t = dragPoint.t - (event.pageX - dragPoint.x) / model.r;
-        var p = dragPoint.p - (event.pageY - dragPoint.y) / model.r;
-        setAngle(t, p);
+      if (!model.zooming) {
+        var p = dragPoint.p - (event.pageX - dragPoint.x) / model.r;
+        var t = dragPoint.t - (event.pageY - dragPoint.y) / model.r;
+        setPTZ(p, t, model.z);
       } else {
-        var s = dragPoint.s - (event.pageY - dragPoint.y) / model.r;
-        setScale(s);
+        var z = dragPoint.z - (event.pageY - dragPoint.y) / model.r;
+        setPTZ(model.p, model.t, z);
       }
     };
     var doc_mouseupHandler = function(event) {
@@ -354,16 +354,12 @@ var spherical_viewer = function(opts) {
     };
   };
 
-  var setAngle = function(t, p) {
-    model.t = t;
+  var setPTZ = function(p, t, z) {
     model.p = p;
-    model.p = Math.max(-Math.PI / 2, Math.min(model.p, Math.PI / 2) );
-    model.valid = false;
-  };
-
-  var setScale = function(s) {
-    model.s = s;
-    model.s = Math.max(-5, Math.min(model.s, 5) );
+    model.t = t;
+    model.z = z;
+    model.t = Math.max(-Math.PI / 2, Math.min(model.t, Math.PI / 2) );
+    model.z = Math.max(-5, Math.min(model.z, 5) );
     model.valid = false;
   };
 
@@ -416,25 +412,22 @@ var spherical_viewer = function(opts) {
     var limit = 1E-6;
     var last = null;
 
-    var t = attParam('t');
     var p = attParam('p');
-    var s = attParam('s');
+    var t = attParam('t');
+    var z = attParam('z');
 
     return function(dt) {
       if (last != null) {
-        t.delta(dt);
         p.delta(dt);
-        s.delta(dt);
+        t.delta(dt);
+        z.delta(dt);
         if (!model.dragging) {
-          if (last.t != t.val() || last.p != p.val() ) {
-            setAngle(t.val(), p.val() );
-          }
-          if (last.s != s.val() ) {
-            setScale(s.val() );
+          if (last.p != p.val() || last.t != t.val() || last.z != z.val() ) {
+            setPTZ(p.val(), t.val(), z.val() );
           }
         }
       }
-      last = { t : model.t, p : model.p, s : model.s };
+      last = { p : model.p, t : model.t, z : model.z };
     };
   }();
 
@@ -586,12 +579,12 @@ var spherical_viewer = function(opts) {
     height : 100,
     numPoints : 0,
     r : 100,
-    t : 0,
     p : 0,
-    s : 0,
-    vt : 0,
+    t : 0,
+    z : 0,
     vp : 0,
-    vs : 0,
+    vt : 0,
+    vz : 0,
     dragging : false
   };
 
@@ -609,6 +602,10 @@ var spherical_viewer = function(opts) {
 
   return {
     canvas : cv,
+    setPTZ : setPTZ,
+    getPTZ : function() {
+      return { p : model.p, t : model.t, z : model.z };
+    },
     toggleFullscreen : prepareFullscreen()
   };
 };
