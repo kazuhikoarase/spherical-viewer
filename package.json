@@ -1,0 +1,20 @@
+{
+  "name": "spherical-viewer",
+  "version": "0.1.0",
+  "description": "",
+  "author": "Kazuhiko Arase",
+  "main": "spherical-viewer.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kazuhikoarase/spherical-viewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kazuhikoarase/spherical-viewer/issues"
+  },
+  "keywords": [
+    "spherical"
+    "webgl",
+    "vr"
+  ],
+  "license": "MIT"
+}

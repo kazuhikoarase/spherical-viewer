@@ -9,9 +9,9 @@
 //  http://www.opensource.org/licenses/mit-license.php
 //
 
-'use strict';
-
 var sphericalviewer = function(opts) {
+
+  'use strict';
 
   var debug = location.protocol == 'file:';
 
@@ -439,7 +439,15 @@ var sphericalviewer = function(opts) {
   }();
 
   var getFullscreenApiNames = function(target) {
-    if (target.webkitRequestFullscreen) {
+    if (target.requestFullscreen) {
+      return {
+        requestFullscreen : 'requestFullscreen',
+        exitFullscreen : 'exitFullscreen',
+        fullscreenEnabled : 'fullscreenEnabled',
+        fullscreenElement : 'fullscreenElement',
+        fullscreenchange : 'fullscreenchange'
+      };
+    } else if (target.webkitRequestFullscreen) {
       return {
         requestFullscreen : 'webkitRequestFullscreen',
         exitFullscreen : 'webkitExitFullscreen',
@@ -556,6 +564,8 @@ var sphericalviewer = function(opts) {
     window.requestAnimationFrame(update);
   };
 
+  //---------------------------------------------------------------------
+
   var cv = document.createElement('canvas');
   cv.setAttribute('width', '640');
   cv.setAttribute('height', '360');
@@ -566,7 +576,7 @@ var sphericalviewer = function(opts) {
 
   if (!gl) {
     console.log('gl not supported.');
-    return;
+    return null;
   }
 
   var model = {

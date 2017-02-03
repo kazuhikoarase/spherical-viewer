@@ -1,2 +1,2 @@
-SphericalViewer
+spherical-viewer
 ---
