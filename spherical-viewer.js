@@ -13,34 +13,22 @@ var spherical_viewer = function(opts) {
 
   'use strict';
 
-  var debug = location.protocol == 'file:';
-
-  var createShader = function(gl, type, src) {
-    var shader = gl.createShader(type);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    var res = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-    if (res) {
-      return shader;
+  !function() {
+    var hDiv = 32;
+    var vDiv = hDiv << 1;
+    var defaultOpts = {
+      src : '',
+      hDiv : hDiv,
+      vDiv : vDiv,
+      att : 0.98,
+      maxTextureSize : 0
+    };
+    for (var k in defaultOpts) {
+      if (typeof opts[k] == 'undefined') {
+        opts[k] = defaultOpts[k];
+      }
     }
-    var msg = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw 'createShader:' + msg;
-  };
-
-  var createProgram = function(gl, vertexShader, fragmentShader) {
-    var pgm = gl.createProgram();
-    gl.attachShader(pgm, vertexShader);
-    gl.attachShader(pgm, fragmentShader);
-    gl.linkProgram(pgm);
-    var res = gl.getProgramParameter(pgm, gl.LINK_STATUS);
-    if (res) {
-      return pgm;
-    }
-    var msg = gl.getProgramInfoLog(pgm);
-    gl.deleteProgram(pgm);
-    throw 'createProgram:' + msg;
-  };
+  }();
 
   //---------------------------------------------------------------------
 
@@ -136,6 +124,35 @@ var spherical_viewer = function(opts) {
 
   //---------------------------------------------------------------------
 
+  var createShader = function(gl, type, src) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    var res = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (res) {
+      return shader;
+    }
+    var msg = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw 'createShader:' + msg;
+  };
+
+  var createProgram = function(gl, vertexShader, fragmentShader) {
+    var pgm = gl.createProgram();
+    gl.attachShader(pgm, vertexShader);
+    gl.attachShader(pgm, fragmentShader);
+    gl.linkProgram(pgm);
+    var res = gl.getProgramParameter(pgm, gl.LINK_STATUS);
+    if (res) {
+      return pgm;
+    }
+    var msg = gl.getProgramInfoLog(pgm);
+    gl.deleteProgram(pgm);
+    throw 'createProgram:' + msg;
+  };
+
+  //---------------------------------------------------------------------
+
   var getSrc = function(id, src) {
 
     var dumpSrc = function(src) {
@@ -201,25 +218,34 @@ var spherical_viewer = function(opts) {
   };
 
   var createDebugImage = function(size) {
-    var unit = size >> 2;
+
     var cv = document.createElement('canvas');
     cv.setAttribute('width', '' + size);
     cv.setAttribute('height', '' + (size >> 1) );
+
     var ctx = cv.getContext('2d');
     ctx.strokeStyle = 'none';
+
     ctx.fillStyle = '#666666';
     ctx.fillRect(0, 0, size, size >> 1);
-    ctx.fillStyle = '#ff0000';
-    ctx.fillRect(0, 0, unit, unit);
-    ctx.fillStyle = '#00ff00';
-    ctx.fillRect(unit, unit, unit, unit);
-    ctx.fillStyle = '#0000ff';
-    ctx.fillRect(unit * 2, 0, unit, unit);
-    ctx.fillStyle = '#ffcc00';
-    ctx.fillRect(unit * 3, unit, unit, unit);
+
+    var hDiv = 8;
+    var vDiv = hDiv / 2;
+    var unit = size / hDiv;
+    var colors = ['#ff0000', '#00ff00', '#0000ff', '#ffcc00'];
+    for (var h = 0; h < hDiv; h += 1) {
+      for (var v = 0; v < vDiv; v+= 1) {
+        if ( (h + v) % 2 == 0) {
+          ctx.fillStyle = colors[h % colors.length];
+          ctx.fillRect(h * unit, v * unit, unit, unit);
+        }
+      }
+    }
+
     ctx.fillStyle = '#ffffff';
     ctx.font = (size >> 4) + 'px sans-serif';
-    ctx.fillText('Spherical Viewer', unit << 1, unit);
+    ctx.fillText('Spherical Viewer', size >> 1, size >> 2);
+
     return cv;
   };
 
@@ -236,9 +262,10 @@ var spherical_viewer = function(opts) {
       gl.generateMipmap(gl.TEXTURE_2D);
     };
 
-    var maxTextureSize = +gl.getParameter(gl.MAX_TEXTURE_SIZE);
-    var size = Math.min(opts.maxTextureSize || maxTextureSize,
-        +gl.getParameter(gl.MAX_TEXTURE_SIZE) );
+    var size = +gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    if (opts.maxTextureSize) {
+      size = Math.min(size, opts.maxTextureSize);
+    }
 
     if (debug) {
       loadImage(createDebugImage(size) );
@@ -261,8 +288,8 @@ var spherical_viewer = function(opts) {
 
   var prepareScene = function() {
 
-    var vDiv = opts.vDiv || 32;
-    var hDiv = opts.hDiv || vDiv << 1;
+    var vDiv = opts.vDiv;
+    var hDiv = opts.hDiv;
     var vt = [];
     var tx = [];
     var addPoint = function(h, v, vOffset) {
@@ -405,7 +432,7 @@ var spherical_viewer = function(opts) {
             model[vid] = getV();
           } else {
             val = model[id] + model[vid] * dt;
-            model[vid] *= att;
+            model[vid] *= opts.att;
             if (Math.abs(model[vid]) < limit) {
               model[vid] = 0;
             }
@@ -415,7 +442,6 @@ var spherical_viewer = function(opts) {
       
     };
 
-    var att = opts.att || 0.98;
     var limit = 1E-6;
     var last = null;
 
@@ -563,6 +589,8 @@ var spherical_viewer = function(opts) {
   };
 
   //---------------------------------------------------------------------
+
+  var debug = location.protocol == 'file:';
 
   var cv = document.createElement('canvas');
   cv.setAttribute('width', '640');
