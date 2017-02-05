@@ -379,6 +379,10 @@ var spherical_viewer = function(opts) {
       target.removeEventListener('mousemove', doc_mousemoveHandler);
       target.removeEventListener('mouseup', doc_mouseupHandler);
     };
+    cv.addEventListener('wheel', function(event) {
+      event.preventDefault();
+      setPTZ(model.p, model.t, model.z + event.deltaY / model.r * .1);
+    });
   };
 
   var setPTZ = function(p, t, z) {
