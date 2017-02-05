@@ -381,7 +381,7 @@ var spherical_viewer = function(opts) {
     };
     cv.addEventListener('wheel', function(event) {
       event.preventDefault();
-      setPTZ(model.p, model.t, model.z + event.deltaY / model.r * .1);
+      setPTZ(model.p, model.t, model.z - event.deltaY / model.r * .1);
     });
   };
 
