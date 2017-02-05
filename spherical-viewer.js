@@ -370,7 +370,7 @@ var spherical_viewer = function(opts) {
         var t = dragPoint.t - (event.pageY - dragPoint.y) / model.r;
         setPTZ(p, t, model.z);
       } else {
-        var z = dragPoint.z - (event.pageY - dragPoint.y) / model.r;
+        var z = dragPoint.z + (event.pageY - dragPoint.y) / model.r;
         setPTZ(model.p, model.t, z);
       }
     };
@@ -381,7 +381,7 @@ var spherical_viewer = function(opts) {
     };
     cv.addEventListener('wheel', function(event) {
       event.preventDefault();
-      setPTZ(model.p, model.t, model.z - event.deltaY / model.r * .1);
+      setPTZ(model.p, model.t, model.z + event.deltaY / model.r * .1);
     });
   };
 
