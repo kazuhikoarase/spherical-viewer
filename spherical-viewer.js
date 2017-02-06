@@ -550,18 +550,12 @@ var spherical_viewer = function(opts) {
     }
   };
 
-  var fakeFullscreen = function() {
+  var fullscreenSupport = function() {
 
     var orgState = null;
     var fullscreened = false;
 
-    return function() {
-
-      fullscreened = !fullscreened;
-
-      if (!fullscreened) {
-        return;
-      }
+    var startFullscreen = function() {
 
       orgState = {
         width : cv.width,
@@ -605,65 +599,32 @@ var spherical_viewer = function(opts) {
       };
       watchWindow();
     };
-  };
-
-  var fullscreenSupport = function() {
 
     var names = getFullscreenApiNames(cv);
+
     if (!names || !document[names.fullscreenEnabled]) {
-      return fakeFullscreen();
+      return function() {
+        fullscreened = !fullscreened;
+        if (fullscreened) {
+          startFullscreen();
+        }
+      };
     }
 
-    var orgSize = null;
-    var fullscreened = false;
-
-    document.addEventListener(names.fullscreenchange, function(event) {
-
-      if (!document[names.fullscreenElement]) {
-        fullscreened = false;
-        return;
+    var fullscreenchangeHandler = function(event) {
+      fullscreened = !!document[names.fullscreenElement];
+      if (fullscreened) {
+        startFullscreen();
+      } else {
+        document.removeEventListener(names.fullscreenchange,
+            fullscreenchangeHandler);
       }
-
-      if (!fullscreened) {
-        // not current canvas.
-        return;
-      }
-
-      cv.style.position = 'absolute';
-      cv.style.left = '0px';
-      cv.style.top = '0px';
-
-      var lastSize = { width : 0, height : 0 };
-
-      var watchWindow = function() {
-
-        if (!document[names.fullscreenElement]) {
-          // exit fullscreen.
-          cv.style.position = '';
-          cv.style.left = '';
-          cv.style.top = '';
-          cv.width = orgSize.width;
-          cv.height = orgSize.height;
-          return;
-        }
-
-        var size = { width : window.innerWidth, height : window.innerHeight };
-        var resized = lastSize.width != size.width ||
-          lastSize.height != size.height;
-        if (resized) {
-          cv.width = size.width;
-          cv.height = size.height;
-          lastSize = size;
-        }
-        window.setTimeout(watchWindow, 50);
-      };
-      watchWindow();
-    });
+    };
 
     return function() {
       if (!document[names.fullscreenElement]) {
-        fullscreened = true;
-        orgSize = { width : cv.width, height : cv.height };
+        document.addEventListener(names.fullscreenchange,
+            fullscreenchangeHandler);
         cv[names.requestFullscreen]();
       } else {
         document[names.exitFullscreen]();
