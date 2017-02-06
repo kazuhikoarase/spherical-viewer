@@ -668,14 +668,16 @@ var spherical_viewer = function(opts) {
     height : 0,
     numPoints : 0,
     r : 0,
-    p : opts.p,
-    t : opts.t,
-    z : opts.z,
+    p : 0,
+    t : 0,
+    z : 0,
     vp : 0,
     vt : 0,
     vz : 0,
     dragging : false
   };
+
+  setPTZ(opts.p, opts.t, opts.z);
 
   var pgm = preparePgm();
 
