@@ -552,7 +552,7 @@ var spherical_viewer = function(opts) {
 
   var fakeFullscreen = function() {
 
-    var orgSize = null;
+    var orgState = null;
     var fullscreened = false;
 
     return function() {
@@ -563,11 +563,18 @@ var spherical_viewer = function(opts) {
         return;
       }
 
-      orgSize = { width : cv.width, height : cv.height };
-      document.body.style.overflow = 'hidden';
+      orgState = {
+        width : cv.width,
+        height : cv.height,
+        scrollLeft :  document.body.scrollLeft,
+        scrollTop : document.body.scrollTop
+      };
       cv.style.position = 'absolute';
       cv.style.left = '0px';
       cv.style.top = '0px';
+      document.body.style.overflow = 'hidden';
+      document.body.scrollLeft = 0;
+      document.body.scrollTop = 0;
 
       var lastSize = { width : 0, height : 0 };
 
@@ -575,12 +582,14 @@ var spherical_viewer = function(opts) {
 
         if (!fullscreened) {
           // exit fullscreen.
-          document.body.style.overflow = '';
           cv.style.position = '';
           cv.style.left = '';
           cv.style.top = '';
-          cv.width = orgSize.width;
-          cv.height = orgSize.height;
+          document.body.style.overflow = '';
+          document.body.scrollLeft = orgState.scrollLeft;
+          document.body.scrollTop = orgState.scrollTop;
+          cv.width = orgState.width;
+          cv.height = orgState.height;
           return;
         }
 
