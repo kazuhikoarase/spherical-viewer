@@ -550,11 +550,59 @@ var spherical_viewer = function(opts) {
     }
   };
 
+  var fakeFullscreen = function() {
+
+    var orgSize = null;
+    var fullscreened = false;
+
+    return function() {
+
+      fullscreened = !fullscreened;
+
+      if (!fullscreened) {
+        return;
+      }
+
+      orgSize = { width : cv.width, height : cv.height };
+      document.body.style.overflow = 'hidden';
+      cv.style.position = 'absolute';
+      cv.style.left = '0px';
+      cv.style.top = '0px';
+
+      var lastSize = { width : 0, height : 0 };
+
+      var watchWindow = function() {
+
+        if (!fullscreened) {
+          // exit fullscreen.
+          document.body.style.overflow = '';
+          cv.style.position = '';
+          cv.style.left = '';
+          cv.style.top = '';
+          cv.width = orgSize.width;
+          cv.height = orgSize.height;
+          return;
+        }
+
+        var size = { width : window.innerWidth, height : window.innerHeight };
+        var resized = lastSize.width != size.width ||
+          lastSize.height != size.height;
+        if (resized) {
+          cv.width = size.width;
+          cv.height = size.height;
+          lastSize = size;
+        }
+        window.setTimeout(watchWindow, 50);
+      };
+      watchWindow();
+    };
+  };
+
   var fullscreenSupport = function() {
 
     var names = getFullscreenApiNames(cv);
     if (!names || !document[names.fullscreenEnabled]) {
-      return function() {};
+      return fakeFullscreen();
     }
 
     var orgSize = null;
