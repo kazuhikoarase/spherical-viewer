@@ -18,6 +18,8 @@ var spherical_viewer = function(opts) {
     var vDiv = hDiv << 1;
     var defaultOpts = {
       src : '',
+      width : 640,
+      height : 360,
       hDiv : hDiv,
       vDiv : vDiv,
       att : 0.98,
@@ -347,32 +349,27 @@ var spherical_viewer = function(opts) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, model.numPoints);
   };
 
-  var prepareEvents = function() {
-    var dragPoint = null;
+  var eventSupport = function() {
+    var lastPoint = null;
     var target = window;
     cv.addEventListener('mousedown', function(event) {
       event.preventDefault();
-      dragPoint = {
-        p : model.p,
-        t : model.t,
-        z : model.z,
-        x : event.pageX,
-        y : event.pageY
-      };
+      lastPoint = { pageX : event.pageX, pageY : event.pageY };
       model.dragging = true;
-      model.zooming = event.ctrlKey;
       target.addEventListener('mousemove', doc_mousemoveHandler);
       target.addEventListener('mouseup', doc_mouseupHandler);
     });
     var doc_mousemoveHandler = function(event) {
-      if (!model.zooming) {
-        var p = dragPoint.p - (event.pageX - dragPoint.x) / model.r;
-        var t = dragPoint.t - (event.pageY - dragPoint.y) / model.r;
-        setPTZ(p, t, model.z);
+      var ptz = getPTZ();
+      if (!event.ctrlKey) {
+        var p = ptz.p - (event.pageX - lastPoint.pageX) / model.r;
+        var t = ptz.t - (event.pageY - lastPoint.pageY) / model.r;
+        setPTZ(p, t, ptz.z);
       } else {
-        var z = dragPoint.z + (event.pageY - dragPoint.y) / model.r;
-        setPTZ(model.p, model.t, z);
+        var z = ptz.z + (event.pageY - lastPoint.pageY) / model.r;
+        setPTZ(ptz.p, ptz.t, z);
       }
+      lastPoint = { pageX : event.pageX, pageY : event.pageY };
     };
     var doc_mouseupHandler = function(event) {
       model.dragging = false;
@@ -381,8 +378,58 @@ var spherical_viewer = function(opts) {
     };
     cv.addEventListener('wheel', function(event) {
       event.preventDefault();
-      setPTZ(model.p, model.t, model.z + event.deltaY / model.r * .1);
+      var ptz = getPTZ();
+      setPTZ(ptz.p, ptz.t, ptz.z + event.deltaY / model.r * .1);
     });
+  };
+
+  var touchEventSupport = function() {
+    var getPoints = function(event) {
+      var points = [];
+      for (var i = 0; i < event.touches.length; i += 1) {
+        points.push({
+          pageX : event.touches[i].pageX,
+          pageY : event.touches[i].pageY
+        });
+      }
+      return points;
+    };
+    var lastPoints = null;
+    var target = window;
+    cv.addEventListener('touchstart', function(event) {
+      event.preventDefault();
+      if (lastPoints == null) {
+        lastPoints = getPoints(event);
+        model.dragging = true;
+        target.addEventListener('touchmove', doc_touchmoveHandler);
+        target.addEventListener('touchend', doc_touchendHandler);
+      }
+    });
+    var doc_touchmoveHandler = function(event) {
+      var ptz = getPTZ();
+      if (event.touches.length == 1) {
+        var p = ptz.p - (event.touches[0].pageX - lastPoints[0].pageX) / model.r;
+        var t = ptz.t - (event.touches[0].pageY - lastPoints[0].pageY) / model.r;
+        setPTZ(p, t, ptz.z);
+      } else if (event.touches.length == 2 && lastPoints.length == 2) {
+        var d = function(o) {
+          var dx = o[0].pageX - o[1].pageX;
+          var dy = o[0].pageY - o[1].pageY;
+          return Math.sqrt(dx * dx + dy * dy);
+        };
+        var z = ptz.z + (d(event.touches) - d(lastPoints) ) / model.r;
+        setPTZ(ptz.p, ptz.t, z);
+      }
+      lastPoints = getPoints(event);
+    };
+    var doc_touchendHandler = function(event) {
+      if (event.touches.length == 0) {
+        lastPoints = null;
+        model.dragging = false;
+        target.removeEventListener('touchmove', doc_touchmoveHandler);
+        target.removeEventListener('touchend', doc_touchendHandler);
+      }
+    };
   };
 
   var setPTZ = function(p, t, z) {
@@ -443,7 +490,6 @@ var spherical_viewer = function(opts) {
           }
         }
       };
-      
     };
 
     var limit = 1E-6;
@@ -504,7 +550,7 @@ var spherical_viewer = function(opts) {
     }
   };
 
-  var prepareFullscreen = function() {
+  var fullscreenSupport = function() {
 
     var names = getFullscreenApiNames(cv);
     if (!names || !document[names.fullscreenEnabled]) {
@@ -597,8 +643,8 @@ var spherical_viewer = function(opts) {
   var debug = location.protocol == 'file:';
 
   var cv = document.createElement('canvas');
-  cv.setAttribute('width', '640');
-  cv.setAttribute('height', '360');
+  cv.setAttribute('width', '' + opts.width);
+  cv.setAttribute('height', '' + opts.height);
   cv.style.cursor = 'all-scroll';
 
   var gl = cv.getContext('webgl') ||
@@ -612,8 +658,8 @@ var spherical_viewer = function(opts) {
   var model = {
     valid : false,
     lastTime : 0,
-    width : 100,
-    height : 100,
+    width : 0,
+    height : 0,
     numPoints : 0,
     r : 100,
     p : 0,
@@ -631,8 +677,13 @@ var spherical_viewer = function(opts) {
 
   model.numPoints = prepareScene();
 
-  prepareEvents();
-  var toggleFullscreen = prepareFullscreen();
+  if (typeof window.ontouchstart != 'undefined') {
+    touchEventSupport();
+  } else {
+    eventSupport();
+  }
+
+  var toggleFullscreen = fullscreenSupport();
 
   gl.enable(gl.DEPTH_TEST);
 
