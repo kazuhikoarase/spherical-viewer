@@ -436,6 +436,9 @@ var spherical_viewer = function(opts) {
   };
 
   var setPTZ = function(p, t, z) {
+    var _2PI = Math.PI * 2;
+    while (p < 0) { p += _2PI; }
+    while (p >= _2PI) { p -= _2PI; }
     t = Math.max(-Math.PI / 2, Math.min(t, Math.PI / 2) );
     z = Math.max(-5, Math.min(z, 5) );
     var moved = model.p != p || model.t != t || model.z != z;
