@@ -1,7 +1,7 @@
 {
   "name": "spherical-viewer",
-  "version": "0.3.1",
-  "description": "panorama photo viewer",
+  "version": "0.3.2",
+  "description": "lightweight panorama photo viewer",
   "author": "Kazuhiko Arase",
   "main": "spherical-viewer.js",
   "repository": {
@@ -15,6 +15,7 @@
     "spherical",
     "viewer",
     "panorama",
+    "360°",
     "webgl",
     "vr"
   ],
