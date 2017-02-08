@@ -297,6 +297,7 @@ var spherical_viewer = function(opts) {
     var addPoint = function(h, v, vOffset) {
       var p = 2 * Math.PI * h / hDiv;
       var t = Math.PI * ( (v + vOffset) / vDiv - 0.5);
+      t = Math.sin(t) * Math.PI / 2; // liner to sine (-PI/2 ~ PI/2)
       vt.push(Math.cos(p) * Math.cos(t) );
       vt.push(Math.sin(t) );
       vt.push(Math.sin(p) * Math.cos(t) );
