@@ -262,29 +262,34 @@ var spherical_viewer = function(opts) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
       gl.generateMipmap(gl.TEXTURE_2D);
+      model.valid = false;
     };
 
     var size = +gl.getParameter(gl.MAX_TEXTURE_SIZE);
     if (opts.maxTextureSize) {
       size = Math.min(size, opts.maxTextureSize);
     }
-
     if (debug) {
-      loadImage(createDebugImage(size) );
-    } else {
+      opts.src = createDebugImage(size);
+    }
+
+    if (typeof opts.src == 'string') {
       var img_loadHandler = function() {
+        var w = size;
+        var h = size >> 1;
         var cv = document.createElement('canvas');
-        cv.setAttribute('width', '' + size);
-        cv.setAttribute('height', '' + (size >> 1) );
+        cv.setAttribute('width', '' + w);
+        cv.setAttribute('height', '' + h);
         var ctx = cv.getContext('2d');
-        ctx.drawImage(img, 0, 0, size, size >> 1);
+        ctx.drawImage(img, 0, 0, w, h);
         loadImage(cv);
-        model.valid = false;
       };
       var img = new Image();
       img.addEventListener('load', img_loadHandler);
       img.crossOrigin = 'anonymous';
       img.src = opts.src;
+    } else {
+      loadImage(opts.src);
     }
   };
 
