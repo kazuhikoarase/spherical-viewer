@@ -202,12 +202,12 @@ var spherical_viewer = function(opts) {
   var preparePgm = function() {
     var vs = createShader(gl, gl.VERTEX_SHADER,
         getSrc('vertex-shader1',
-            'attribute vec3 aPosition;' +
+            'attribute vec4 aPosition;' +
             'uniform mat4 uMatrix;' +
             'attribute vec2 aTexcoord;' +
             'varying vec2 vTexcoord;' +
             'void main() {' +
-            'gl_Position = vec4(aPosition, 1) * uMatrix;' +
+            'gl_Position = uMatrix * aPosition;' +
             'vTexcoord = aTexcoord;' +
             '}') );
     var fs = createShader(gl, gl.FRAGMENT_SHADER,
@@ -343,12 +343,9 @@ var spherical_viewer = function(opts) {
     var w = model.width;
     var h = model.height;
 
-    var mat = mat4().translate({x : -1, y : -1, z : -1}).scale(2).
-      scale({x : 1 / w, y : 1 / h, z : 1 / (model.r * 2)}).
-      translate({x : w / 2, y : h / 2, z : model.r + 10}).
-      rotateX(model.t).
-      rotateY(model.p - Math.PI / 2).
-      scale(model.r);
+    var mat = mat4().scale(model.r).
+      rotateY(model.p + Math.PI / 2).rotateX(model.t).
+      scale({x : 1 / w, y : 1 / h, z : 1 / model.r}).translateZ(-0.1);
 
     gl.clearColor(0, 0, 0, 255);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -372,8 +369,8 @@ var spherical_viewer = function(opts) {
     var doc_mousemoveHandler = function(event) {
       var ptz = getPTZ();
       if (!event.ctrlKey) {
-        var p = ptz.p - (event.pageX - lastPoint.pageX) / model.r;
-        var t = ptz.t - (event.pageY - lastPoint.pageY) / model.r;
+        var p = ptz.p + (event.pageX - lastPoint.pageX) / model.r;
+        var t = ptz.t + (event.pageY - lastPoint.pageY) / model.r;
         setPTZ(p, t, ptz.z);
       } else {
         var z = ptz.z + (event.pageY - lastPoint.pageY) / model.r;
