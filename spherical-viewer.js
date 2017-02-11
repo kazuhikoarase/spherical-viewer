@@ -415,8 +415,8 @@ var spherical_viewer = function(opts) {
     var doc_touchmoveHandler = function(event) {
       var ptz = getPTZ();
       if (event.touches.length == 1) {
-        var p = ptz.p - (event.touches[0].pageX - lastPoints[0].pageX) / model.r;
-        var t = ptz.t - (event.touches[0].pageY - lastPoints[0].pageY) / model.r;
+        var p = ptz.p + (event.touches[0].pageX - lastPoints[0].pageX) / model.r;
+        var t = ptz.t + (event.touches[0].pageY - lastPoints[0].pageY) / model.r;
         setPTZ(p, t, ptz.z);
       } else if (event.touches.length == 2 && lastPoints.length == 2) {
         var d = function(o) {
