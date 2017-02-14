@@ -223,139 +223,6 @@ var spherical_viewer = function(opts) {
     return pgm;
   };
 
-  var createDebugImage = function(size) {
-
-    var cv = document.createElement('canvas');
-    cv.setAttribute('width', '' + size);
-    cv.setAttribute('height', '' + (size >> 1) );
-
-    var ctx = cv.getContext('2d');
-    ctx.strokeStyle = 'none';
-
-    ctx.fillStyle = '#666666';
-    ctx.fillRect(0, 0, size, size >> 1);
-
-    var hDiv = 8;
-    var vDiv = hDiv / 2;
-    var unit = size / hDiv;
-    var colors = ['#ff0000', '#00ff00', '#0000ff', '#ffcc00'];
-    for (var h = 0; h < hDiv; h += 1) {
-      for (var v = 0; v < vDiv; v+= 1) {
-        if ( (h + v) % 2 == 0) {
-          ctx.fillStyle = colors[h % colors.length];
-          ctx.fillRect(h * unit, v * unit, unit, unit);
-        }
-      }
-    }
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = (size >> 4) + 'px sans-serif';
-    ctx.fillText('Spherical Viewer', size >> 1, size >> 2);
-
-    return cv;
-  };
-
-  var prepareTexture = function() {
-
-    var texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0,
-        gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([63, 63, 63]) );
-
-    var loadImage = function(img) {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
-      gl.generateMipmap(gl.TEXTURE_2D);
-      model.valid = false;
-    };
-
-    var size = +gl.getParameter(gl.MAX_TEXTURE_SIZE);
-    if (opts.maxTextureSize) {
-      size = Math.min(size, opts.maxTextureSize);
-    }
-    if (debug) {
-      opts.src = createDebugImage(size);
-    }
-
-    if (typeof opts.src == 'string') {
-      var img_loadHandler = function() {
-        var w = size;
-        var h = size >> 1;
-        var cv = document.createElement('canvas');
-        cv.setAttribute('width', '' + w);
-        cv.setAttribute('height', '' + h);
-        var ctx = cv.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        loadImage(cv);
-      };
-      var img = new Image();
-      img.addEventListener('load', img_loadHandler);
-      img.crossOrigin = 'anonymous';
-      img.src = opts.src;
-    } else {
-      loadImage(opts.src);
-    }
-  };
-
-  var prepareScene = function() {
-
-    var vDiv = opts.vDiv;
-    var hDiv = opts.hDiv;
-    var vt = [];
-    var tx = [];
-    var addPoint = function(h, v, vOffset) {
-      var p = 2 * Math.PI * h / hDiv;
-      var t = Math.PI * ( (v + vOffset) / vDiv - 0.5);
-      t = Math.sin(t) * Math.PI / 2; // liner to sine (-PI/2 ~ PI/2)
-      vt.push(Math.cos(p) * Math.cos(t) );
-      vt.push(Math.sin(t) );
-      vt.push(Math.sin(p) * Math.cos(t) );
-      tx.push(p / (2 * Math.PI) + v);
-      tx.push(1 - (t / Math.PI + 0.5) );
-    };
-    for (var v = 0; v < vDiv; v += 1) {
-      for (var h = 0; h < hDiv; h += 1) {
-        addPoint(h, v, v == 0? 0 : h / hDiv);
-        addPoint(h, v, v == vDiv - 1? 1 : h / hDiv + 1);
-      }
-    }
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tx), gl.STATIC_DRAW);
-
-    var aTexcoordLoc = gl.getAttribLocation(pgm, 'aTexcoord');
-    gl.enableVertexAttribArray(aTexcoordLoc);
-    gl.vertexAttribPointer(aTexcoordLoc, 2, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vt), gl.STATIC_DRAW);
-
-    var aPositionLoc = gl.getAttribLocation(pgm, 'aPosition');
-    gl.enableVertexAttribArray(aPositionLoc);
-    gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, 0, 0);
-
-    return vt.length / 3;
-  };
-
-  var updateScene = function() {
-
-    model.r = model.width * Math.exp(Math.log(1.5) * model.z);
-    var w = model.width;
-    var h = model.height;
-
-    var mat = mat4().scale(model.r).
-      rotateY(model.p + Math.PI / 2).rotateX(model.t).
-      scale({x : 1 / w, y : 1 / h, z : 1 / model.r}).translateZ(-0.1);
-
-    gl.clearColor(0, 0, 0, 255);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    var uMatrixLoc = gl.getUniformLocation(pgm, 'uMatrix');
-    gl.uniformMatrix4fv(uMatrixLoc, false, mat);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, model.numPoints);
-  };
-
   var eventSupport = function() {
     var lastPoint = null;
     var target = window;
@@ -424,8 +291,8 @@ var spherical_viewer = function(opts) {
           var dy = o[0].pageY - o[1].pageY;
           return Math.sqrt(dx * dx + dy * dy);
         };
-        var z = ptz.z + (d(event.touches) - d(lastPoints) ) / model.r;
-        setPTZ(ptz.p, ptz.t, z);
+        setPTZ(ptz.p, ptz.t,
+            ptz.z + (d(event.touches) - d(lastPoints) ) / model.r);
       }
       lastPoints = getPoints(event);
     };
@@ -665,6 +532,144 @@ var spherical_viewer = function(opts) {
 
   //---------------------------------------------------------------------
 
+  var createDebugImage = function(size) {
+
+    var cv = document.createElement('canvas');
+    cv.setAttribute('width', '' + size);
+    cv.setAttribute('height', '' + (size >> 1) );
+
+    var ctx = cv.getContext('2d');
+    ctx.strokeStyle = 'none';
+
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(0, 0, size, size >> 1);
+
+    var hDiv = 8;
+    var vDiv = hDiv / 2;
+    var unit = size / hDiv;
+    var colors = ['#ff0000', '#00ff00', '#0000ff', '#ffcc00'];
+    for (var h = 0; h < hDiv; h += 1) {
+      for (var v = 0; v < vDiv; v+= 1) {
+        if ( (h + v) % 2 == 0) {
+          ctx.fillStyle = colors[h % colors.length];
+          ctx.fillRect(h * unit, v * unit, unit, unit);
+        }
+      }
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = (size >> 4) + 'px sans-serif';
+    ctx.fillText('Spherical Viewer', size >> 1, size >> 2);
+
+    return cv;
+  };
+
+  var prepareTexture = function() {
+
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0,
+        gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([63, 63, 63]) );
+
+    var loadImage = function(img) {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      model.valid = false;
+    };
+
+    var size = +gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    if (opts.maxTextureSize) {
+      size = Math.min(size, opts.maxTextureSize);
+    }
+    if (debug) {
+      opts.src = createDebugImage(size);
+    }
+
+    if (typeof opts.src == 'string') {
+      var img_loadHandler = function() {
+        var w = size;
+        var h = size >> 1;
+        var cv = document.createElement('canvas');
+        cv.setAttribute('width', '' + w);
+        cv.setAttribute('height', '' + h);
+        var ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        loadImage(cv);
+      };
+      var img = new Image();
+      img.addEventListener('load', img_loadHandler);
+      img.crossOrigin = 'anonymous';
+      img.src = opts.src;
+    } else {
+      loadImage(opts.src);
+    }
+  };
+
+  var prepareScene = function() {
+
+    var vDiv = opts.vDiv;
+    var hDiv = opts.hDiv;
+    var vt = [];
+    var tx = [];
+    var addPoint = function(h, v, vOffset) {
+      var p = 2 * Math.PI * h / hDiv;
+      var t = Math.PI * ( (v + vOffset) / vDiv - 0.5);
+      t = Math.sin(t) * Math.PI / 2; // liner to sine (-PI/2 ~ PI/2)
+      vt.push(Math.cos(p) * Math.cos(t) );
+      vt.push(Math.sin(t) );
+      vt.push(Math.sin(p) * Math.cos(t) );
+      tx.push(p / (2 * Math.PI) + v);
+      tx.push(1 - (t / Math.PI + 0.5) );
+    };
+    for (var v = 0; v < vDiv; v += 1) {
+      for (var h = 0; h < hDiv; h += 1) {
+        addPoint(h, v, v == 0? 0 : h / hDiv);
+        addPoint(h, v, v == vDiv - 1? 1 : h / hDiv + 1);
+      }
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tx), gl.STATIC_DRAW);
+
+    var aTexcoordLoc = gl.getAttribLocation(pgm, 'aTexcoord');
+    gl.enableVertexAttribArray(aTexcoordLoc);
+    gl.vertexAttribPointer(aTexcoordLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vt), gl.STATIC_DRAW);
+
+    var aPositionLoc = gl.getAttribLocation(pgm, 'aPosition');
+    gl.enableVertexAttribArray(aPositionLoc);
+    gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, 0, 0);
+
+    return vt.length / 3;
+  };
+
+  var updateScene = function() {
+
+    model.r = model.width * Math.exp(Math.log(1.5) * model.z);
+    var w = model.width;
+    var h = model.height;
+
+    var mat = mat4().scale(model.r).
+      rotateY(model.p + Math.PI / 2).
+      rotateX(model.t).
+      scale({x : 1 / w, y : 1 / h, z : 1 / model.r}).
+      translateZ(-0.1);
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.clearColor(0, 0, 0, 255);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    var uMatrixLoc = gl.getUniformLocation(pgm, 'uMatrix');
+    gl.uniformMatrix4fv(uMatrixLoc, false, mat);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, model.numPoints);
+  };
+
+  //---------------------------------------------------------------------
+
   var debug = location.protocol == 'file:';
 
   var cv = document.createElement('canvas');
@@ -699,7 +704,6 @@ var spherical_viewer = function(opts) {
   var pgm = preparePgm();
 
   prepareTexture();
-
   model.numPoints = prepareScene();
 
   if (typeof window.ontouchstart != 'undefined') {
@@ -709,8 +713,6 @@ var spherical_viewer = function(opts) {
   }
 
   var toggleFullscreen = fullscreenSupport();
-
-  gl.enable(gl.DEPTH_TEST);
 
   window.requestAnimationFrame(update);
 
