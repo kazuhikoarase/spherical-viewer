@@ -659,8 +659,10 @@ var spherical_viewer = function(opts) {
       translateZ(-0.1);
 
     gl.enable(gl.DEPTH_TEST);
-    gl.clearColor(0, 0, 0, 255);
+    gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     var uMatrixLoc = gl.getUniformLocation(pgm, 'uMatrix');
     gl.uniformMatrix4fv(uMatrixLoc, false, mat);
