@@ -652,10 +652,13 @@ var spherical_viewer = function(opts) {
     var w = model.width;
     var h = model.height;
 
-    var mat = mat4().scale(model.r).
-      rotateY(model.p + Math.PI / 2).
-      rotateX(model.t).
-      scale({x : 1 / w, y : 1 / h, z : 1 / model.r}).
+    var pmat = mat4();
+    pmat[2 * 4 + 3] = 1;
+
+    var mat = mat4().
+      rotateY(model.p - Math.PI / 2).
+      rotateX(-model.t).concat(pmat).scale(model.r).
+      scale({x : -1 / w, y : 1 / h, z : 1 / model.r}).
       translateZ(-0.1);
 
     gl.enable(gl.DEPTH_TEST);
