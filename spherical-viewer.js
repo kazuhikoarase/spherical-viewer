@@ -27,6 +27,7 @@ var spherical_viewer = function(opts) {
       zMin : -5,
       zMax : 5,
       att : 0.98,
+      pRate : 1,
       maxTextureSize : 0
     };
     for (var k in defaultOpts) {
@@ -223,6 +224,10 @@ var spherical_viewer = function(opts) {
     return pgm;
   };
 
+  var getRate = function() {
+    return 1 + opts.pRate;
+  };
+
   var eventSupport = function() {
     var lastPoint = null;
     var target = window;
@@ -236,11 +241,11 @@ var spherical_viewer = function(opts) {
     var doc_mousemoveHandler = function(event) {
       var ptz = getPTZ();
       if (!event.ctrlKey) {
-        var p = ptz.p + (event.pageX - lastPoint.pageX) / model.r;
-        var t = ptz.t + (event.pageY - lastPoint.pageY) / model.r;
+        var p = ptz.p + (event.pageX - lastPoint.pageX) / model.r * getRate();
+        var t = ptz.t + (event.pageY - lastPoint.pageY) / model.r * getRate();
         setPTZ(p, t, ptz.z);
       } else {
-        var z = ptz.z + (event.pageY - lastPoint.pageY) / model.r;
+        var z = ptz.z + (event.pageY - lastPoint.pageY) / model.r * getRate();
         setPTZ(ptz.p, ptz.t, z);
       }
       lastPoint = { pageX : event.pageX, pageY : event.pageY };
@@ -253,7 +258,8 @@ var spherical_viewer = function(opts) {
     cv.addEventListener('wheel', function(event) {
       event.preventDefault();
       var ptz = getPTZ();
-      setPTZ(ptz.p, ptz.t, ptz.z + event.deltaY / model.r * .1);
+      setPTZ(ptz.p, ptz.t,
+          ptz.z + event.deltaY / model.r * .1 + getRate() );
     });
   };
 
@@ -282,8 +288,10 @@ var spherical_viewer = function(opts) {
     var doc_touchmoveHandler = function(event) {
       var ptz = getPTZ();
       if (event.touches.length == 1 && lastPoints.length == 1) {
-        var p = ptz.p + (event.touches[0].pageX - lastPoints[0].pageX) / model.r;
-        var t = ptz.t + (event.touches[0].pageY - lastPoints[0].pageY) / model.r;
+        var p = ptz.p +
+          (event.touches[0].pageX - lastPoints[0].pageX) / model.r * getRate();
+        var t = ptz.t +
+          (event.touches[0].pageY - lastPoints[0].pageY) / model.r * getRate();
         setPTZ(p, t, ptz.z);
       } else if (event.touches.length == 2 && lastPoints.length == 2) {
         var d = function(o) {
@@ -292,7 +300,7 @@ var spherical_viewer = function(opts) {
           return Math.sqrt(dx * dx + dy * dy);
         };
         setPTZ(ptz.p, ptz.t,
-            ptz.z + (d(event.touches) - d(lastPoints) ) / model.r);
+            ptz.z + (d(event.touches) - d(lastPoints) ) / model.r * getRate() );
       }
       lastPoints = getPoints(event);
     };
@@ -653,7 +661,7 @@ var spherical_viewer = function(opts) {
     var h = model.height;
 
     var pmat = mat4();
-    pmat[2 * 4 + 3] = 1;
+    pmat[2 * 4 + 3] = opts.pRate;
 
     var mat = mat4().
       rotateY(model.p - Math.PI / 2).
