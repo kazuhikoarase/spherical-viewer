@@ -259,7 +259,7 @@ var spherical_viewer = function(opts) {
       event.preventDefault();
       var ptz = getPTZ();
       setPTZ(ptz.p, ptz.t,
-          ptz.z + event.deltaY / model.r * .1 + getRate() );
+          ptz.z + (event.deltaY / model.r * .1) + getRate() );
     });
   };
 
