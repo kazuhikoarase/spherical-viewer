@@ -39,95 +39,113 @@ var spherical_viewer = function(opts) {
 
   //---------------------------------------------------------------------
 
-  var mat4 = function(m) {
+  var mat4 = function() {
 
-    m = m || [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
-
-    m.concat = function(n) {
-      var o = [];
-      for (var i = 0; i < 16; i += 1) {
-        var v = 0;
-        for (var j = 0; j < 4; j += 1) {
-          v += m[~~(i / 4) * 4 + j] * n[i % 4 + j * 4];
+    var fn = {
+      concat : function(n) {
+        var o = [];
+        o.length = 16;
+        for (var i = 0; i < o.length; i += 1) {
+          var v = 0;
+          for (var j = 0; j < 4; j += 1) {
+            v += this[~~(i / 4) * 4 + j] * n[i % 4 + j * 4];
+          }
+          o[i] = v;
         }
-        o.push(v);
+        return mat4(o);
+      },
+      translateX : function(t) {
+        return this.concat([
+                           1, 0, 0, t,
+                           0, 1, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1 ]);
+      },
+      translateY : function(t) {
+        return this.concat([
+                           1, 0, 0, 0,
+                           0, 1, 0, t,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1 ]);
+      },
+      translateZ : function(t) {
+        return this.concat([
+                           1, 0, 0, 0,
+                           0, 1, 0, 0,
+                           0, 0, 1, t,
+                           0, 0, 0, 1 ]);
+      },
+      scaleX : function(s) {
+        return this.concat([
+                           s, 0, 0, 0,
+                           0, 1, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1 ]);
+      },
+      scaleY : function(s) {
+        return this.concat([
+                           1, 0, 0, 0,
+                           0, s, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1 ]);
+      },
+      scaleZ : function(s) {
+        return this.concat([
+                           1, 0, 0, 0,
+                           0, 1, 0, 0,
+                           0, 0, s, 0,
+                           0, 0, 0, 1 ]);
+      },
+      rotateX : function(r) {
+        var c = Math.cos(r);
+        var s = Math.sin(r);
+        return this.concat([
+                           1, 0, 0, 0,
+                           0, c,-s, 0,
+                           0, s, c, 0,
+                           0, 0, 0, 1 ]);
+      },
+      rotateY : function(r) {
+        var c = Math.cos(r);
+        var s = Math.sin(r);
+        return this.concat([
+                           c, 0, s, 0,
+                           0, 1, 0, 0,
+                          -s, 0, c, 0,
+                           0, 0, 0, 1 ]);
+      },
+      rotateZ : function(r) {
+        var c = Math.cos(r);
+        var s = Math.sin(r);
+        return this.concat([
+                           c,-s, 0, 0,
+                           s, c, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1 ]);
+      },
+      translate : function(t) {
+        return this.translateX(t.x || 0).translateY(t.y || 0).translateZ(t.z || 0);
+      },
+      scale : function(s) {
+        if (typeof s == 'number') {
+          return this.scale({ x : s, y : s, z : s });
+        }
+        return this.scaleX(s.x || 1).scaleY(s.y || 1).scaleZ(s.z || 1);
       }
-      return mat4(o);
     };
-    m.translateX = function(t) {
-      return m.concat([ 1, 0, 0, t,
-                         0, 1, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1 ]);
+
+    fn.__proto__ = [].__proto__;
+
+    var identity = function() {
+      return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
     };
-    m.translateY = function(t) {
-      return m.concat([ 1, 0, 0, 0,
-                         0, 1, 0, t,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1 ]);
+
+    return function(m) {
+      m = m || identity();
+      m.__proto__ = fn;
+      return m;
     };
-    m.translateZ = function(t) {
-      return m.concat([ 1, 0, 0, 0,
-                         0, 1, 0, 0,
-                         0, 0, 1, t,
-                         0, 0, 0, 1 ]);
-    };
-    m.scaleX = function(s) {
-      return m.concat([ s, 0, 0, 0,
-                         0, 1, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1 ]);
-    };
-    m.scaleY = function(s) {
-      return m.concat([ 1, 0, 0, 0,
-                         0, s, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1 ]);
-    };
-    m.scaleZ = function(s) {
-      return m.concat([ 1, 0, 0, 0,
-                         0, 1, 0, 0,
-                         0, 0, s, 0,
-                         0, 0, 0, 1 ]);
-    };
-    m.rotateX = function(r) {
-      var c = Math.cos(r);
-      var s = Math.sin(r);
-      return m.concat([ 1, 0, 0, 0,
-                         0, c,-s, 0,
-                         0, s, c, 0,
-                         0, 0, 0, 1 ]);
-    };
-    m.rotateY = function(r) {
-      var c = Math.cos(r);
-      var s = Math.sin(r);
-      return m.concat([ c, 0, s, 0,
-                         0, 1, 0, 0,
-                        -s, 0, c, 0,
-                         0, 0, 0, 1 ]);
-    };
-    m.rotateZ = function(r) {
-      var c = Math.cos(r);
-      var s = Math.sin(r);
-      return m.concat([ c,-s, 0, 0,
-                         s, c, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1 ]);
-    };
-    m.translate = function(t) {
-      return m.translateX(t.x || 0).translateY(t.y || 0).translateZ(t.z || 0);
-    };
-    m.scale = function(s) {
-      if (typeof s == 'number') {
-        return m.scale({ x : s, y : s, z : s });
-      }
-      return m.scaleX(s.x || 1).scaleY(s.y || 1).scaleZ(s.z || 1);
-    };
-    m.invert = function() {
-      return invert(m);
-    };
-    return m;
-  };
+  }();
 
   //---------------------------------------------------------------------
 
