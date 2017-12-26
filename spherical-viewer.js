@@ -15,7 +15,7 @@ var spherical_viewer = function(opts) {
 
   !function() {
     var hDiv = 32;
-    var vDiv = hDiv << 1;
+    var vDiv = hDiv;
     var defaultOpts = {
       src : '',
       width : 640,
@@ -592,13 +592,11 @@ var spherical_viewer = function(opts) {
 
   var prepareTexture = function() {
 
-    var texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture() );
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0,
         gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([63, 63, 63]) );
 
     var loadImage = function(img) {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
       gl.generateMipmap(gl.TEXTURE_2D);
       model.valid = false;
@@ -638,38 +636,57 @@ var spherical_viewer = function(opts) {
     var hDiv = opts.hDiv;
     var vt = [];
     var tx = [];
-    var addPoint = function(h, v, vOffset) {
-      var p = 2 * Math.PI * h / hDiv;
-      var t = Math.PI * ( (v + vOffset) / vDiv - 0.5);
-      t = Math.sin(t) * Math.PI / 2; // liner to sine (-PI/2 ~ PI/2)
-      vt.push(Math.cos(p) * Math.cos(t) );
-      vt.push(Math.sin(t) );
-      vt.push(Math.sin(p) * Math.cos(t) );
-      tx.push(p / (2 * Math.PI) + v);
-      tx.push(1 - (t / Math.PI + 0.5) );
+    var addPoint = function(h, v) {
+      var p = 2 * Math.PI * (h + v * 0.5) / hDiv;
+      var t = Math.PI * v / vDiv;
+      t = (1 - Math.cos(t) ) * Math.PI / 2;
+      vt.push(Math.cos(p) * Math.sin(t) );
+      vt.push(Math.cos(t) );
+      vt.push(Math.sin(p) * Math.sin(t) );
+      tx.push(p / (2 * Math.PI) );
+      tx.push(t / Math.PI);
     };
-    for (var v = 0; v < vDiv; v += 1) {
-      for (var h = 0; h < hDiv; h += 1) {
-        addPoint(h, v, v == 0? 0 : h / hDiv);
-        addPoint(h, v, v == vDiv - 1? 1 : h / hDiv + 1);
+    for (var v = 0; v <= vDiv; v += 1) {
+      for (var h = 0; h <= hDiv; h += 1) {
+        addPoint(h, v);
       }
     }
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tx), gl.STATIC_DRAW);
+    var indices = [];
+    for (var v = 0; v < vDiv; v += 1) {
+      for (var h = 0; h < hDiv; h += 1) {
+        var p0 = v * (hDiv + 1) + h;
+        var p1 = v * (hDiv + 1) + h + 1;
+        var p2 = (v + 1) * (hDiv + 1) + h;
+        var p3 = (v + 1) * (hDiv + 1) + h + 1;
+        if (v > 0) {
+          indices = indices.concat([p0, p1, p2]);
+        }
+        if (v < vDiv - 1) {
+          indices = indices.concat([p1, p2, p3]);
+        }
+      }
+    }
 
     var aTexcoordLoc = gl.getAttribLocation(pgm, 'aTexcoord');
     gl.enableVertexAttribArray(aTexcoordLoc);
+
+    var aPositionLoc = gl.getAttribLocation(pgm, 'aPosition');
+    gl.enableVertexAttribArray(aPositionLoc);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tx), gl.STATIC_DRAW);
     gl.vertexAttribPointer(aTexcoordLoc, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer() );
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vt), gl.STATIC_DRAW);
-
-    var aPositionLoc = gl.getAttribLocation(pgm, 'aPosition');
-    gl.enableVertexAttribArray(aPositionLoc);
     gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, 0, 0);
 
-    return vt.length / 3;
+    var indicesBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesBuf);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
+        new Uint16Array(indices), gl.STATIC_DRAW);
+    return { indicesBuf : indicesBuf, numIndicies : indices.length };
   };
 
   var updateScene = function() {
@@ -688,15 +705,17 @@ var spherical_viewer = function(opts) {
       translateZ(-0.1);
 
     gl.enable(gl.DEPTH_TEST);
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     var uMatrixLoc = gl.getUniformLocation(pgm, 'uMatrix');
     gl.uniformMatrix4fv(uMatrixLoc, false, mat);
 
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, model.numPoints);
+    gl.drawElements(gl.TRIANGLES,
+        model.scene.numIndicies, gl.UNSIGNED_SHORT, 0);
   };
 
   //---------------------------------------------------------------------
@@ -721,7 +740,7 @@ var spherical_viewer = function(opts) {
     lastTime : 0,
     width : 0,
     height : 0,
-    numPoints : 0,
+    scene : null,
     r : 0,
     p : 0,
     t : 0,
@@ -735,7 +754,7 @@ var spherical_viewer = function(opts) {
   var pgm = preparePgm();
 
   prepareTexture();
-  model.numPoints = prepareScene();
+  model.scene = prepareScene();
 
   if (typeof window.ontouchstart != 'undefined') {
     touchEventSupport();
