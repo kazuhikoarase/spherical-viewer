@@ -384,9 +384,6 @@ var spherical_viewer = function(opts) {
           } else {
             val = model[id] + model[vid] * dt;
             model[vid] *= opts.att;
-            if (Math.abs(model[vid]) < limit) {
-              model[vid] = 0;
-            }
           }
         }
       };
@@ -404,6 +401,13 @@ var spherical_viewer = function(opts) {
         p.delta(dt);
         t.delta(dt);
         z.delta(dt);
+        var v = Math.sqrt(model.vp * model.vp +
+            model.vt * model.vt + model.vz * model.vz);
+        if (v < limit) {
+          model.vp = 0;
+          model.vt = 0;
+          model.vz = 0;
+        }
         if (!model.dragging) {
           setPTZ(p.val(), t.val(), z.val() );
         }
