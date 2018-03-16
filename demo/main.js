@@ -4,7 +4,7 @@ window.onload = function() {
   'use strict';
 
   //var defaultSearch = 'sv_params=%7B"url"%3A"ueno_park.jpg"%2C"p"%3A6.262178969940567%2C"t"%3A0.21342468641979026%2C"z"%3A0.6704468055668809%7D';
-  var defaultSearch = 'sv_params=%7B"url"%3A"nezu_jinja.jpg"%2C"p"%3A5.0111117091118995%2C"t"%3A0.2808143945548357%2C"z"%3A-0.5669114366236754%7D';
+  var defaultSearch = 'sv_params=%7B"url"%3A"https%3A%2F%2Fkazuhikoarase.github.io%2Fassets%2Fnezu_jinja.jpg"%2C"p"%3A5.0111117091118995%2C"t"%3A0.2808143945548357%2C"z"%3A-0.5669114366236754%7D';
 
   var params = function(query_string) {
     var params = {};
