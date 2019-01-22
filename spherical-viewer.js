@@ -670,10 +670,10 @@ var spherical_viewer = function(opts) {
       tx.push(p / (2 * Math.PI) + v);
       tx.push(1 - (t / Math.PI + 0.5) );
     };
-    for (var v = 0; v < vDiv; v += 1) {
+    for (var v = 0; v <= vDiv; v += 1) {
       for (var h = 0; h < hDiv; h += 1) {
-        addPoint(h, v, v == 0? 0 : h / hDiv);
-        addPoint(h, v, v == vDiv - 1? 1 : h / hDiv + 1);
+        addPoint(h, v, v == 0? 0 : h / hDiv - 1);
+        addPoint(h, v, v == vDiv? 1 : h / hDiv);
       }
     }
 
